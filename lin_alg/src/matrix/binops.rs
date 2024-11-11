@@ -73,7 +73,8 @@ impl<T: RingElement, const M: usize, const N: usize> Mul<Vector<T, M>> for Matri
 impl<T: RingElement, const M: usize, const N: usize> Add for Matrix<T, M, N> {
     type Output = Matrix<T, M, N>;
     fn add(self, rhs: Self) -> Self::Output {
-        let mut arr: [[T; N]; M] = [[T::default(); N]; M];
+        let mut arr: [[T; N]; M] =
+            [[unsafe { const { std::mem::MaybeUninit::uninit().assume_init() } }; N]; M];
         arr.iter_mut().enumerate().for_each(|(i, val)| {
             val.iter_mut()
                 .enumerate()
@@ -87,7 +88,8 @@ impl<T: RingElement, const M: usize, const N: usize> Add for Matrix<T, M, N> {
 impl<T: RingElement, const M: usize, const N: usize> Sub for Matrix<T, M, N> {
     type Output = Matrix<T, M, N>;
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut arr: [[T; N]; M] = [[T::default(); N]; M];
+        let mut arr: [[T; N]; M] =
+            [[unsafe { const { std::mem::MaybeUninit::uninit().assume_init() } }; N]; M];
         arr.iter_mut().enumerate().for_each(|(i, val)| {
             val.iter_mut()
                 .enumerate()
