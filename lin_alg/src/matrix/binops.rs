@@ -47,13 +47,7 @@ impl<T: RingElement, const M: usize, const N: usize, const K: usize> Mul<Matrix<
 impl<T: RingElement, const M: usize, const N: usize> Mul<T> for Matrix<T, M, N> {
     type Output = Matrix<T, M, N>;
     fn mul(self, rhs: T) -> Self::Output {
-        let mut arr: [[T; N]; M] = [[T::default(); N]; M];
-        arr.iter_mut().enumerate().for_each(|(i, val)| {
-            val.iter_mut()
-                .enumerate()
-                .for_each(|(j, val)| *val = self[i][j] * rhs)
-        });
-        Matrix(arr)
+        Matrix(self.map(|arr| arr.map(|x| x * rhs)))
     }
 }
 

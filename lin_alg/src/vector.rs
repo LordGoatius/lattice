@@ -1,6 +1,6 @@
 use std::ops::{Add, Deref, DerefMut, Mul, Sub};
 
-use crate::traits::RingElement;
+use crate::{traits::RingElement, Zip};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Vector<T: RingElement, const N: usize>(pub [T; N]);
@@ -25,9 +25,7 @@ impl<T: RingElement, const N: usize> Add for Vector<T, N> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let mut arr: [T; N] = [T::default(); N];
-        arr.iter_mut().enumerate().for_each(|(i, val)| *val = self[i] + rhs[i]);
-        Vector(arr)
+        Vector(self.zip(*rhs).map(|(l, r)| l + r))
     }
 }
 
@@ -36,9 +34,7 @@ impl<T: RingElement, const N: usize> Sub for Vector<T, N> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut arr: [T; N] = [T::default(); N];
-        arr.iter_mut().enumerate().for_each(|(i, val)| *val = self[i] - rhs[i]);
-        Vector(arr)
+        Vector(self.zip(*rhs).map(|(l, r)| l - r))
     }
 }
 
@@ -47,21 +43,13 @@ impl<T: RingElement, const N: usize> Mul<T> for Vector<T, N> {
     type Output = Vector<T, N>;
 
     fn mul(self, rhs: T) -> Self::Output {
-        let mut prod: Vector<T, N> = self;
-        for i in 0..N {
-            prod[i] = prod[i] * rhs;
-        }
-        prod
+        Vector(self.map(|x| x * rhs))
     }
 }
 
 impl<T: RingElement, const N: usize> Vector<T, N> {
     pub fn dot(self, rhs: Vector<T, N>) -> T {
-        let mut prod: T = T::default();
-        for i in 0..N {
-            prod = prod + (self[i] * rhs[i]);
-        }
-        prod
+        (0..N).fold(T::default(), |acc, i| acc + (self[i] * rhs[i]))
     }
     // Gotta add cross and dot product
 }

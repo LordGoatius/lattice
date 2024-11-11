@@ -10,7 +10,8 @@ struct Matrix<T: RingElement, const M: usize, const N: usize>([[T; N]; M]);
 // M rows N columns
 impl<T: RingElement, const M: usize, const N: usize> Matrix<T, M, N> {
     pub fn transpose(self) -> Matrix<T, N, M> {
-        let mut ret: Matrix<T, N, M> = Matrix([[T::default(); M]; N]);
+        let mut ret: Matrix<T, N, M> =
+            Matrix([[unsafe { const { std::mem::MaybeUninit::uninit().assume_init() } }; M]; N]);
         // rows in self
         for i in 0..M {
             // cols in self
