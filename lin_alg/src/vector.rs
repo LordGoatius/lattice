@@ -1,9 +1,11 @@
 use std::ops::{Add, Deref, DerefMut, Mul, Sub};
 
+use rand::Rng;
+
 use crate::{traits::RingElement, Zip};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Vector<T: RingElement, const N: usize>(pub [T; N]);
+pub struct Vector<T: RingElement, const N: usize>(pub [T; N]);
 
 //== Deref ==//
 impl<T: RingElement, const N: usize> Deref for Vector<T, N> {
@@ -52,6 +54,13 @@ impl<T: RingElement, const N: usize> Vector<T, N> {
         (0..N).fold(T::default(), |acc, i| acc + (self[i] * rhs[i]))
     }
     // Gotta add cross and dot product
+}
+
+impl<const N: usize> Vector<isize, N> {
+    pub fn random_perturbation_vector(r: isize) -> Vector<isize, N> {
+        let mut rand = rand::thread_rng();
+        Vector([rand.gen_range(-r..=r); N])
+    }
 }
 
 #[cfg(test)]

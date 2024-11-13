@@ -2,5 +2,10 @@
 resolver = "1"
 
 members = [
-    "lin_alg"
+    "lin_alg",
+    "lwe"
 ]
+
+[workspace.dependencies]
+rand = "^0.8.5"
+

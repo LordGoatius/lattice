@@ -1,8 +1,9 @@
 [package]
-name = "lin_alg"
+name = "lwe"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+lin_alg = { path = "../lin_alg" }
 rand.workspace = true
 rand_distr = "0.4.3"

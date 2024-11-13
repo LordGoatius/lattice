@@ -53,9 +53,9 @@ impl<T: RingElement, const M: usize, const N: usize> Mul<T> for Matrix<T, M, N> 
 
 //== Vector Multiplication ==//
 // M x N means M rows and N columns
-impl<T: RingElement, const M: usize, const N: usize> Mul<Vector<T, M>> for Matrix<T, M, N> {
+impl<T: RingElement, const M: usize, const N: usize> Mul<Vector<T, N>> for Matrix<T, M, N> {
     type Output = Vector<T, M>;
-    fn mul(self, rhs: Vector<T, M>) -> Self::Output {
+    fn mul(self, rhs: Vector<T, N>) -> Self::Output {
         let mut prod: Vector<T, M> = Vector([T::default(); M]);
         // create every element
         for row in 0..M {

@@ -1,3 +1,7 @@
+use core::f32;
+
+use rand_distr::{Distribution, Normal};
+
 use crate::traits::RingElement;
 
 pub mod binops;
@@ -5,7 +9,7 @@ pub mod det;
 
 // M x N means M rows and N columns
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct Matrix<T: RingElement, const M: usize, const N: usize>([[T; N]; M]);
+pub struct Matrix<T: RingElement, const M: usize, const N: usize>(pub [[T; N]; M]);
 
 // M rows N columns
 impl<T: RingElement, const M: usize, const N: usize> Matrix<T, M, N> {
@@ -21,5 +25,11 @@ impl<T: RingElement, const M: usize, const N: usize> Matrix<T, M, N> {
             }
         }
         ret
+    }
+}
+
+impl<const M: usize, const N: usize> Matrix<f64, M, N> {
+    pub fn round(self) -> Matrix<usize, M, N> {
+        Matrix(self.map(|row| row.map(|i| i.round() as usize)))
     }
 }
