@@ -14,7 +14,7 @@ pub trait Zip<T: RingElement, const N: usize> {
 
 impl<T: RingElement, const N: usize> Zip<T, N> for [T; N] {
     fn zip(self, rhs: [T; N]) -> [(T, T); N] {
-        let mut ret: [(T, T); N] = [unsafe { std::mem::MaybeUninit::uninit().assume_init() }; N];
+        let mut ret: [(T, T); N] = [const { std::mem::MaybeUninit::uninit() }; N].map(|x| unsafe { x.assume_init() });
         for i in 0..N {
             ret[i].0 = self[i];
             ret[i].1 = rhs[i];

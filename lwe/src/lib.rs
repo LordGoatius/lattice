@@ -5,15 +5,15 @@ use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
 //== Random M x N Matrix ==//
-pub fn rand_mod_matrix<const M: usize, const L: usize>(modulus: usize) -> Matrix<isize, M, L> {
+pub fn rand_mod_matrix<const M: usize, const L: usize>(modulus: usize) -> Matrix<f64, M, L> {
     let mut rand = rand::thread_rng();
-    let mut ret: Matrix<isize, M, L> = Matrix(
+    let mut ret: Matrix<f64, M, L> = Matrix(
         [[const { std::mem::MaybeUninit::uninit() }; L].map(|x| unsafe { x.assume_init() }); M],
     );
 
     for row in 0..M {
         for col in 0..L {
-            ret[row][col] = rand.gen_range(0..modulus) as isize;
+            ret[row][col] = rand.gen_range(0..modulus) as f64;
         }
     }
 
@@ -24,38 +24,34 @@ pub fn rand_mod_matrix<const M: usize, const L: usize>(modulus: usize) -> Matrix
 pub fn generate_error_matrix<const N: usize, const L: usize>(
     q: usize,
     alpha: f64,
-) -> Matrix<usize, N, L> {
+) -> Matrix<f64, N, L> {
     let sigma = alpha * q as f64 / f64::sqrt(2.0 * std::f64::consts::PI);
-    println!("{sigma}");
 
     let ret = [[0.0; L]; N];
 
     let discrete_normal = || {
         let mut rand = rand::thread_rng();
-        Normal::new(0.0, sigma)
-            .unwrap()
-            .sample(&mut rand)
-            .round()
-            % q as f64
+        Normal::new(0.0, sigma).unwrap().sample(&mut rand)
     };
 
-    Matrix(ret.map(|row| row.map(|_| discrete_normal() as usize)))
+    Matrix(ret.map(|row| row.map(|_| discrete_normal())))
 }
 
 //== Perturbation Vector ==//
-pub fn random_perturbation_vector<const N: usize>(r: isize) -> Vector<isize, N> {
+pub fn random_perturbation_vector<const N: usize>(r: f64) -> Vector<f64, N> {
     let mut rand = rand::thread_rng();
-    Vector([rand.gen_range(-r..=r); N])
+    let vec = [0.0; N];
+    Vector(vec.map(|_| rand.gen_range(-r..=r)))
 }
 
 //== UnRounding ==//
-pub fn f_inv<const L: usize>(vec: Vector<isize, L>, t: usize, q: usize) -> Vector<f64, L> {
+pub fn f_inv<const L: usize>(vec: Vector<f64, L>, t: usize, q: usize) -> Vector<f64, L> {
     Vector(vec.map(|val| ((t as f64 / q as f64) * val as f64).round() % t as f64))
 }
 
 //== Rounding ==//
-pub fn f<const L: usize>(vec: Vector<f64, L>) -> Vector<isize, L> {
-    Vector(vec.map(|val| val.round() as isize))
+pub fn f<const L: usize>(vec: Vector<f64, L>) -> Vector<f64, L> {
+    Vector(vec.map(|val| val.round()))
 }
 
 //== Decrypt Function ==//
@@ -87,44 +83,70 @@ mod tests {
         const N: usize = const { M + 1 };
         const L: usize = const { N + 1 };
 
-        let to_arr = |message: String| -> [usize; L] {
-            let mut ret = [0; L];
+        let to_arr = |message: String| -> [f64; L] {
+            let mut ret = [0.0; L];
             for (i, char) in message.chars().take(L).enumerate() {
-                ret[i] = char as usize;
+                ret[i] = char as usize as f64;
             }
             ret
         };
 
-        let message: Vector<usize, L> = Vector(to_arr("this is a message".to_string()));
+        let message: Vector<f64, L> = Vector(to_arr("this is a message".to_string()));
 
         const Q: usize = 200;
         const T: usize = 200;
 
-        let secret_key: Matrix<isize, M, L> = rand_mod_matrix(Q); // Q
-        let public_a: Matrix<isize, N, M> = rand_mod_matrix(Q); // T
-        let error_mat: Matrix<isize, N, L> = generate_error_matrix(Q, 0.001).to_isize();
-        println!("{error_mat:?}");
+        let secret_key: Matrix<f64, M, L> = rand_mod_matrix(Q); // Q
+        let public_a: Matrix<f64, N, M> = rand_mod_matrix(Q); // T
+        let error_mat: Matrix<f64, N, L> = generate_error_matrix(Q, 0.0009);
         let public_p = (public_a * secret_key) + error_mat;
 
-        let perturb: Vector<isize, N> = random_perturbation_vector(900);
+        let perturb: Vector<f64, N> = random_perturbation_vector(0.5);
+        //println!("Pert: {perturb:?}");
         let u = public_a.transpose() * perturb;
 
-        let c = (public_p.transpose() * perturb) + message.to_isize();
+        let c = (public_p.transpose() * perturb) + message;
+        //let c2 = c + Vector([1.0; L]);
+        //println!("Enc: {c:?}");
 
         let temp = c - (secret_key.transpose() * u);
-        let temp = f_inv(temp, T, Q);
-        let temp = f(temp);
-        let decrypted = temp;
+        let decrypted = f(f_inv(temp, T, Q));
+        //let decrypted2 = f(f_inv(c2 - (secret_key.transpose() * u), T, Q));
 
-        println!("{decrypted:?}");
-        println!("{message:?}");
+        //println!("{decrypted:?}");
+        //println!("{message:?}");
 
-        assert_eq!(decrypted, message.to_isize())
+        let to_message = |message: Vector<f64, L>| -> String {
+            message
+                .map(|x| char::from_u32(x.abs().trunc() as u32).unwrap())
+                .iter()
+                .filter(|x| !x.is_control())
+                .collect()
+        };
+
+        println!("{:?}", to_message(decrypted));
+        //println!("{:?}", to_message(decrypted2));
+        assert_eq!(message, Vector(decrypted.map(|x| x.abs())));
+    }
+
+    #[test]
+    fn test_panic() {
+        let mut total = Vec::new();
+
+        for _ in 0..65536 {
+            total.push(std::panic::catch_unwind(|| it_works()));
+        }
+
+        let total_len = total.len();
+        let (worked, errors): (Vec<_>, Vec<_>) = total.into_iter().partition(Result::is_ok);
+        println!("Worked: {}", worked.len());
+        println!("Errors: {}", errors.len());
+        println!("Fails {:.4}% of the time", 100.0 * errors.len() as f64 / total_len as f64)
     }
 
     #[test]
     fn rand() {
-        let rand: Matrix<usize, 6, 6> = rand_mod_matrix(18).to_usize();
+        let rand: Matrix<f64, 6, 6> = rand_mod_matrix(18);
         println!("{rand:?}");
     }
 }
