@@ -49,18 +49,23 @@ impl<T: RingElement, const N: usize> Mul<T> for Vector<T, N> {
     }
 }
 
+impl<const N: usize> Vector<isize, N> {
+    pub fn to_usize(self) -> Vector<usize, N> {
+        Vector(self.map(|elem| elem as usize))
+    }
+}
+
+impl<const N: usize> Vector<usize, N> {
+    pub fn to_isize(self) -> Vector<isize, N> {
+        Vector(self.map(|elem| elem as isize))
+    }
+}
+
 impl<T: RingElement, const N: usize> Vector<T, N> {
     pub fn dot(self, rhs: Vector<T, N>) -> T {
         (0..N).fold(T::default(), |acc, i| acc + (self[i] * rhs[i]))
     }
     // Gotta add cross and dot product
-}
-
-impl<const N: usize> Vector<isize, N> {
-    pub fn random_perturbation_vector(r: isize) -> Vector<isize, N> {
-        let mut rand = rand::thread_rng();
-        Vector([rand.gen_range(-r..=r); N])
-    }
 }
 
 #[cfg(test)]
