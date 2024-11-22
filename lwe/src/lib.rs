@@ -1,6 +1,8 @@
 use lin_alg::matrix::Matrix;
 use lin_alg::vector::Vector;
 
+use rayon::iter::ParallelIterator;
+
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
@@ -74,8 +76,11 @@ pub fn encrypt<const M: usize, const N: usize, const L: usize>(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use super::*;
     use lin_alg::matrix::Matrix;
+    use rayon::iter::{self, IntoParallelIterator};
 
     #[test]
     fn it_works() {
@@ -98,23 +103,23 @@ mod tests {
 
         let secret_key: Matrix<f64, M, L> = rand_mod_matrix(Q); // Q
         let public_a: Matrix<f64, N, M> = rand_mod_matrix(Q); // T
-        let error_mat: Matrix<f64, N, L> = generate_error_matrix(Q, 0.0009);
-        let public_p = (public_a * secret_key) + error_mat;
+        let error_mat: Matrix<f64, N, L> = generate_error_matrix(Q, 0.00088);
+        let public_p: Matrix<f64, N, L> = (public_a * secret_key) + error_mat;
 
         let perturb: Vector<f64, N> = random_perturbation_vector(0.5);
-        //println!("Pert: {perturb:?}");
+        println!("Pert: {perturb:?}");
         let u = public_a.transpose() * perturb;
 
         let c = (public_p.transpose() * perturb) + message;
         //let c2 = c + Vector([1.0; L]);
-        //println!("Enc: {c:?}");
+        println!("Enc: {c:?}");
 
         let temp = c - (secret_key.transpose() * u);
         let decrypted = f(f_inv(temp, T, Q));
         //let decrypted2 = f(f_inv(c2 - (secret_key.transpose() * u), T, Q));
 
-        //println!("{decrypted:?}");
-        //println!("{message:?}");
+        println!("{decrypted:?}");
+        println!("{message:?}");
 
         let to_message = |message: Vector<f64, L>| -> String {
             message
@@ -131,17 +136,21 @@ mod tests {
 
     #[test]
     fn test_panic() {
-        let mut total = Vec::new();
+        let total = Arc::new(Mutex::new(Vec::new()));
 
-        for _ in 0..65536 {
+        (0..usize::pow(2, 24)).into_par_iter().for_each(|_| {
+            let mut total = total.lock().unwrap();
             total.push(std::panic::catch_unwind(|| it_works()));
-        }
+        });
 
-        let total_len = total.len();
-        let (worked, errors): (Vec<_>, Vec<_>) = total.into_iter().partition(Result::is_ok);
+        let (worked, errors): (Vec<_>, Vec<_>) = Arc::try_unwrap(total)
+            .unwrap()
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .partition(Result::is_ok);
         println!("Worked: {}", worked.len());
         println!("Errors: {}", errors.len());
-        println!("Fails {:.4}% of the time", 100.0 * errors.len() as f64 / total_len as f64)
     }
 
     #[test]

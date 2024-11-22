@@ -7,3 +7,4 @@ edition = "2021"
 lin_alg = { path = "../lin_alg" }
 rand.workspace = true
 rand_distr = "0.4.3"
+rayon = "1.10.0"
